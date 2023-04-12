@@ -80,9 +80,9 @@ public:
 
 struct SearchNode
 {
-    SearchNode *parent; 
+    SearchNode *parent;
     int word, length;
-    
+
     float lmscore, dagscore;
     static const int QuickMapSize = 5;
     QuickMap<int, float, QuickMapSize, dagstep_get_or_create> dagstepscore_map;
@@ -101,7 +101,7 @@ inline int __printf (const char *format, ...)
    int done;
 
    va_start (arg, format);
-   done = vfprintf (stdout, format, arg);
+   done = vfprintf (stderr, format, arg);
    va_end (arg);
 
    return done;
@@ -163,7 +163,7 @@ class NotifyCache
 public:
     unordered_map<pair<int, pair<int, int>>, pair<Notify*, Notify*>, pair_hash> *local_head;
 
-    void init(){ 
+    void init(){
         local_head = new unordered_map<pair<int, pair<int, int>>, pair<Notify*, Notify*>, pair_hash>;
     }
 
@@ -203,10 +203,14 @@ public:
         int allocate_size = buf_per_thread + rand() % randomized_buf_per_thread;
         tbuf.private_pool_pt = shared_pool_pt.fetch_add(allocate_size, memory_order_relaxed);
         tbuf.private_pool_pt_end = tbuf.private_pool_pt + allocate_size;
-        
-        #ifdef DEBUG
-        if(tbuf.private_pool_pt_end - pool > pool_size) __printf("memory exceeded!!!");
-        #endif
+
+        // #ifdef DEBUG
+        if(tbuf.private_pool_pt_end - pool > pool_size){
+            __printf("memory exceeded!!!");
+            exit(-1);
+        }
+        // #endif
+
         return tbuf.private_pool_pt++;
     }
 };
@@ -313,11 +317,11 @@ extern NodeNotifyMap** node_notify_map_atomic;
 extern NodeStepMap** node_step_map;
 
 int query_vocab_index(char* word);
-void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int thread_num, char* lm_path);
+void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int maxtoken, int thread_num, char* lm_path);
 void init_beam(int batch_size, int go_id);
 
 template<class T>
-void expand_beam(int batch_size, int step, T output_length, T dagscores, T nextstep_idx, T logits_idx, T lm_vocab, float top_p);
+void expand_beam(int batch_size, int step, T output_length, T dagscores, T nextstep_idx, T logits_idx, T lm_vocab, float top_p, int no_consecutive_repeat_ngram, int no_repeat_ngram);
 
 inline float& dagstep_get_or_create::operator()(int nextstep, bool &create, int batch_id, SearchNode* nextnode)
 {

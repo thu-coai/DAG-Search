@@ -5,7 +5,7 @@ from libcpp.vector cimport vector
 from libcpp.utility cimport pair
 from atomic cimport memory_order
 from libcpp cimport bool
-cimport _kenlm 
+cimport _kenlm
 
 cdef extern from *:
     """
@@ -75,10 +75,10 @@ cdef extern from "python/SearchBeam.h":
     cdef bool node_compare_allscore(const pair[float, SearchNode*] &a, const pair[float, SearchNode*] &b) nogil
     cdef float calculate_score(SearchNode* node, float alpha, float gamma) nogil
 
-    cdef void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int thread_num, char* lm_path) nogil
+    cdef void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int maxtoken, int thread_num, char* lm_path) nogil
     cdef void init_beam(int batch_size, int go_id) nogil
     cdef void add_step_dagscore(int batch, SearchNode* nextnode_readonly, int nextstep, float dagscore) nogil
-    cdef void expand_beam(int batch_size, int step, int[::1] output_length, float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx, int[:, :, ::1] logits_idx, int [::1] lm_vocab, float top_p) nogil
+    cdef void expand_beam(int batch_size, int step, int[::1] output_length, float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx, int[:, :, ::1] logits_idx, int [::1] lm_vocab, float top_p, int no_consecutive_repeat_ngram, int no_repeat_ngram) nogil
 
     cdef void __debug_print_node(SearchNode* now) nogil
     cdef int __printf(const char *template, ...) nogil

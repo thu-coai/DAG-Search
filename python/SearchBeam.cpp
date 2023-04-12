@@ -64,28 +64,30 @@ static ExpandBeamCache thread_expand_cache;
 # pragma omp threadprivate(thread_notify_cache, thread_expand_cache)
 
 
-void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int thread_num, char* lm_path)
+void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int maxtoken, int thread_num, char* lm_path)
 {
-    __printf("enter init\n");
+    //__printf("enter init\n");
     assert(!initialized);
-    initialized = true;;
-    __printf("create beam_size=%d top_cand_n=%d maxpos=%d thread_num=%d\n", beam_size, top_cand_n, maxpos, thread_num);
-    
+    initialized = true;
+
+    omp_set_num_threads(thread_num);
+    __printf("create batch_size=%d beam_size=%d top_cand_n=%d maxpos=%d maxtoken=%d thread_num=%d\n", batch_size, beam_size, top_cand_n, maxpos, maxtoken, thread_num);
+
     max_batch_size = batch_size;
-    int mempool_size = beam_size * top_cand_n * maxpos * batch_size + MultiThreadMemPool<SearchNode*>::buf_per_thread * thread_num * 2;
+    int mempool_size = beam_size * top_cand_n * maxtoken + MultiThreadMemPool<SearchNode*>::buf_per_thread * thread_num * 2;
     sn_pool.init_global(mempool_size);
     ntf_pool.init_global(mempool_size);
     ns_pool.init_global(mempool_size);
     nc_pool.init_global(mempool_size);
     nn_pool.init_global(mempool_size);
-    printf("dagsearch initialized: mempool_size=%d\n", mempool_size);
-    
+    __printf("dagsearch initialized: mempool_size=%d\n", mempool_size);
+
     max_pos = maxpos;
 
     beams = create_and_init<vector<pair<float, SearchNode*>>>(batch_size * maxpos, [&](int i){
         return new vector<pair<float, SearchNode*>>;
     });
-    int hashsize = beam_size * top_cand_n * maxpos / 10;
+    int hashsize = beam_size * top_cand_n * maxtoken / batch_size;
     node_notify_map_atomic = create_and_init<NodeNotifyMap>(batch_size, [&](int i){
         return new NodeNotifyMap(hashsize, &nn_pool);
     });
@@ -97,12 +99,12 @@ void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int 
     });
 
     if(lm_path != nullptr){
-        printf("loading lm\n");
+        //__printf("loading lm\n");
         model = lm::ngram::LoadVirtual(lm_path, lm::ngram::Config());
         if(model != nullptr){
-            printf("lm loading successfully\n");
+            //__printf("loading lm successfully\n");
         }else{
-            printf("lm loading failed\n");
+            __printf("loading lm failed\n");
         }
     }else{
         model = nullptr;
@@ -114,7 +116,7 @@ void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int 
         thread_expand_cache.init();
     }
 
-    __printf("exit_init\n");
+    //__printf("exit_init\n");
 }
 int query_vocab_index(char* word){
     const lm::base::Vocabulary &vocab = model->BaseVocabulary();
@@ -167,7 +169,7 @@ inline void direct_insert_notify(int batch, SearchNode* target, int pos, int len
     bool create;
     now->next = node_notify_map_atomic[batch]->get_or_create(make_pair(pos, length), create, memory_order_relaxed).
                                                exchange(now, memory_order_relaxed);  //TODO: heat point
-                                
+
     if(create) now->next = nullptr;
 }
 
@@ -286,7 +288,7 @@ public:
         #endif
         return sum;
     }
-        
+
     tuple<int, int> get(int i) const {
         int pos = upper_bound(chk_arr.begin(), chk_arr.end(), i) - chk_arr.begin() - 1;
         return {pos, i - chk_arr[pos]};
@@ -307,13 +309,15 @@ inline void expand_path(int batch, SearchNode* node, int nextstep, int word, int
 }
 
 template<>
-void expand_beam(int batch_size, int step, 
-            __Pyx_memviewslice output_length, 
-            __Pyx_memviewslice dagscores, 
-            __Pyx_memviewslice nextstep_idx, 
-            __Pyx_memviewslice logits_idx, 
+void expand_beam(int batch_size, int step,
+            __Pyx_memviewslice output_length,
+            __Pyx_memviewslice dagscores,
+            __Pyx_memviewslice nextstep_idx,
+            __Pyx_memviewslice logits_idx,
             __Pyx_memviewslice lm_vocab,
-            float top_p) {
+            float top_p,
+            int no_consecutive_repeat_ngram,
+            int no_repeat_ngram) {
 
     int top_cand_n = dagscores.shape[2];
 
@@ -329,6 +333,7 @@ void expand_beam(int batch_size, int step,
 
             // tid = omp_get_thread_num();
             // printf("expand_beam prange start tid=%d chunk=%d now_batch=%d now_beam=%d\n", tid, i, now_batch, now_beam);
+            // __printf("threads num = %d", omp_get_num_threads());
 
             SearchNode* now_node = (*beams[now_batch * max_pos])[now_beam].second;
 
@@ -338,11 +343,51 @@ void expand_beam(int batch_size, int step,
             #ifdef DEBUG
             if(create) printf("????????????? bug in expand_beam\n");
             #endif
-            
+
+            const int banned_words_max = 128;
+            int banned_words_idx = 0;
+            int banned_words[banned_words_max] = {0};
+            if(no_consecutive_repeat_ngram || no_repeat_ngram){
+                int last_token = now_node->word;
+                if(no_consecutive_repeat_ngram > 0){
+                    banned_words[banned_words_idx++] = last_token;
+                }
+                int dist = 1;
+                for(SearchNode* prevEnd = now_node->parent; prevEnd; last_token = prevEnd->word, prevEnd = prevEnd->parent){
+                    if (prevEnd->word == now_node->word){
+                        int max_match_length = 1;
+                        SearchNode *nowpoint = now_node->parent, *prevpoint = prevEnd->parent;
+                        for(; prevpoint && nowpoint;
+                                    nowpoint = nowpoint->parent, prevpoint = prevpoint->parent){
+                            if(nowpoint->word == prevpoint->word){
+                                max_match_length++;
+                            }else{
+                                break;
+                            }
+                        }
+
+                        if(no_consecutive_repeat_ngram >= dist && max_match_length + 1 >= dist){
+                            banned_words[banned_words_idx++] = last_token;
+                            if (banned_words_idx >= banned_words_max) goto banned_full;
+                        }
+                        if(no_repeat_ngram > 0 && no_repeat_ngram <= max_match_length + 1){
+                            banned_words[banned_words_idx++] = last_token;
+                            if (banned_words_idx >= banned_words_max) goto banned_full;
+                        }
+                    }
+                    dist++;
+                }
+                banned_full:;
+            }
+
             float count_sum = 0;
             for(int j = 0; j < top_cand_n; j++){
                 if(count_sum < top_p){
                     int word = *((int*)(logits_idx.data + now_batch * logits_idx.strides[0] + step * logits_idx.strides[1]) + j);
+                    bool banned_flag = false;
+                    for(int k = 0; k < banned_words_idx; k++) if(banned_words[k] == word) {banned_flag = true; break;}
+                    if(banned_flag) continue;
+
                     int lm_word = *((int*)(lm_vocab.data) + word);
                     int nextstep = *((int*)(nextstep_idx.data + now_batch * nextstep_idx.strides[0] + step * nextstep_idx.strides[1]) + j);
                     float add_dagstepscore = *((float*)(dagscores.data + now_batch * dagscores.strides[0] + step * dagscores.strides[1]) + j);
@@ -358,5 +403,3 @@ void expand_beam(int batch_size, int step,
         thread_notify_cache.write_back();
     }
 }
-
-

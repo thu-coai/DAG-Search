@@ -1,3 +1,7 @@
+# distutils: language = c++
+# cython: infer_types=True
+# cython: language_level=3
+
 from libcpp cimport bool
 
 cdef extern from "lm/word_index.hh" namespace "lm":

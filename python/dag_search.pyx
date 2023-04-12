@@ -8,6 +8,7 @@ cimport openmp
 import os
 import numpy as np
 import time
+import sys
 from libcpp.vector cimport vector
 from libcpp cimport bool
 from algorithm cimport nth_element, upper_bound, sort
@@ -27,6 +28,7 @@ init_time = 0
 update_time = 0
 expand_time = 0
 lm_vocab = None
+max_token = None
 
 cdef bytes as_str(data):
     if isinstance(data, bytes):
@@ -35,25 +37,28 @@ cdef bytes as_str(data):
         return data.encode('utf8')
     raise TypeError('Cannot convert %s to string' % type(data))
 
-def beam_search_init(int batch_size, int beam_size, int top_cand_n, int maxpos, tgt_dict, path=None):
+def beam_search_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int maxtoken, int threads_per_worker, tgt_dict, path=None):
     # Allocate memory and load vocabulary
     global lm_vocab
+    global max_token
     lm_vocab = np.zeros(len(tgt_dict.symbols), dtype=np.intc)
+    max_token = min(maxtoken, batch_size * maxpos)
     if path is not None:
         path = os.path.abspath(as_str(path))
-        SearchBeam.global_init(batch_size, beam_size, top_cand_n, maxpos, openmp.omp_get_max_threads(), path)
-        print("load vocab start")
+        SearchBeam.global_init(batch_size, beam_size, top_cand_n, maxpos, max_token, threads_per_worker, path)
+        #printf("load vocab start")
         for i, word in enumerate(tgt_dict.symbols):
             lm_vocab[i] = SearchBeam.query_vocab_index(as_str(word))
-        print("load vocab end")
+        #printf("load vocab end")
     else:
-        SearchBeam.global_init(batch_size, beam_size, top_cand_n, maxpos, openmp.omp_get_max_threads(), <char*>0)
+        SearchBeam.global_init(batch_size, beam_size, top_cand_n, maxpos, max_token, threads_per_worker, <char*>0)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
         int[:, :, ::1] logits_idx, int[::1] output_length,
-        float alpha, float gamma, int beam_size, int beamlensize, float top_p, int pad_id, int go_id, int dedup):
+        float alpha, float gamma, int beam_size, int beamlensize, float top_p, int pad_id, int go_id, int dedup,
+        int no_consecutive_repeat_ngram, int no_repeat_ngram):
 
     batch_size = dagscores.shape[0]
     prelen = dagscores.shape[1]
@@ -63,6 +68,7 @@ def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
     if SearchBeam.__debug_flag:
         printf("before init node\n")
         start_init = time.time()
+    assert np.sum(output_length) < max_token
     init_beam(batch_size, go_id)
     if SearchBeam.__debug_flag:
         printf("after init node\n")
@@ -79,7 +85,7 @@ def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
         if SearchBeam.__debug_flag:
             printf("dag_search: finish get beam\n")
             start2 = time.time()
-        expand_beam(batch_size, i, output_length, dagscores, nextstep_idx, logits_idx, lm_vocab_view, top_p)
+        expand_beam(batch_size, i, output_length, dagscores, nextstep_idx, logits_idx, lm_vocab_view, top_p, no_consecutive_repeat_ngram, no_repeat_ngram)
         if SearchBeam.__debug_flag:
             printf("dag_search: finish expand beam\n")
             start3 = time.time()
