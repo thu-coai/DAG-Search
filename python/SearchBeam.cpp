@@ -70,17 +70,20 @@ void global_init(int batch_size, int beam_size, int top_cand_n, int maxpos, int 
     assert(!initialized);
     initialized = true;
 
+    omp_set_dynamic(0);
     omp_set_num_threads(thread_num);
     __printf("create batch_size=%d beam_size=%d top_cand_n=%d maxpos=%d maxtoken=%d thread_num=%d\n", batch_size, beam_size, top_cand_n, maxpos, maxtoken, thread_num);
 
     max_batch_size = batch_size;
     int mempool_size = beam_size * top_cand_n * maxtoken + MultiThreadMemPool<SearchNode*>::buf_per_thread * thread_num * 2;
+    // printf("mempool_size=%d\n", mempool_size);
+    __printf("dagsearch allocating %.2f GB memory on this worker\n",
+        (float(mempool_size) * (sizeof(SearchNode) + sizeof(Notify) + sizeof(NodeStepMap::Node) + sizeof(NodeChildrenMap::Node) + sizeof(NodeNotifyMap::Node)))/1024/1024/1024);
     sn_pool.init_global(mempool_size);
     ntf_pool.init_global(mempool_size);
     ns_pool.init_global(mempool_size);
     nc_pool.init_global(mempool_size);
     nn_pool.init_global(mempool_size);
-    __printf("dagsearch initialized: mempool_size=%d\n", mempool_size);
 
     max_pos = maxpos;
 

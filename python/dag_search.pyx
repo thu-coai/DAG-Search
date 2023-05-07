@@ -100,7 +100,8 @@ def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
     if SearchBeam.__debug_flag:
         printf("dag_search: after traverse\n")
         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")
-    return result, score
+    output_len = (result != pad_id).sum(axis=-1).max()
+    return result[:, :output_len], score
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

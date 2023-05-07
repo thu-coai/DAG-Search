@@ -1565,6 +1565,35 @@ static CYTHON_INLINE void __Pyx_XDEC_MEMVIEW(__Pyx_memviewslice *, int, int);
 static PyObject* __Pyx_PyUnicode_Join(PyObject* value_tuple, Py_ssize_t value_count, Py_ssize_t result_ulength,
                                       Py_UCS4 max_char);
 
+/* GetItemInt.proto */
+#define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
+    __Pyx_GetItemInt_Fast(o, (Py_ssize_t)i, is_list, wraparound, boundscheck) :\
+    (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL) :\
+               __Pyx_GetItemInt_Generic(o, to_py_func(i))))
+#define __Pyx_GetItemInt_List(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
+    __Pyx_GetItemInt_List_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
+    (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL))
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
+                                                              int wraparound, int boundscheck);
+#define __Pyx_GetItemInt_Tuple(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
+    __Pyx_GetItemInt_Tuple_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
+    (PyErr_SetString(PyExc_IndexError, "tuple index out of range"), (PyObject*)NULL))
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
+                                                              int wraparound, int boundscheck);
+static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j);
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
+                                                     int is_list, int wraparound, int boundscheck);
+
+/* ObjectGetItem.proto */
+#if CYTHON_USE_TYPE_SLOTS
+static CYTHON_INLINE PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* key);
+#else
+#define __Pyx_PyObject_GetItem(obj, key)  PyObject_GetItem(obj, key)
+#endif
+
 /* DivInt[long].proto */
 static CYTHON_INLINE long __Pyx_div_long(long, long);
 
@@ -1612,35 +1641,6 @@ static CYTHON_UNUSED int __pyx_array_getbuffer(PyObject *__pyx_v_self, Py_buffer
 static PyObject *__pyx_array_get_memview(struct __pyx_array_obj *); /*proto*/
 /* GetAttr.proto */
 static CYTHON_INLINE PyObject *__Pyx_GetAttr(PyObject *, PyObject *);
-
-/* GetItemInt.proto */
-#define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
-    __Pyx_GetItemInt_Fast(o, (Py_ssize_t)i, is_list, wraparound, boundscheck) :\
-    (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL) :\
-               __Pyx_GetItemInt_Generic(o, to_py_func(i))))
-#define __Pyx_GetItemInt_List(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
-    __Pyx_GetItemInt_List_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
-    (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL))
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck);
-#define __Pyx_GetItemInt_Tuple(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
-    __Pyx_GetItemInt_Tuple_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
-    (PyErr_SetString(PyExc_IndexError, "tuple index out of range"), (PyObject*)NULL))
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck);
-static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j);
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
-                                                     int is_list, int wraparound, int boundscheck);
-
-/* ObjectGetItem.proto */
-#if CYTHON_USE_TYPE_SLOTS
-static CYTHON_INLINE PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* key);
-#else
-#define __Pyx_PyObject_GetItem(obj, key)  PyObject_GetItem(obj, key)
-#endif
 
 /* decode_c_string_utf16.proto */
 static CYTHON_INLINE PyObject *__Pyx_PyUnicode_DecodeUTF16(const char *s, Py_ssize_t size, const char *errors) {
@@ -2099,10 +2099,12 @@ static const char __pyx_k_i[] = "i";
 static const char __pyx_k_id[] = "id";
 static const char __pyx_k_np[] = "np";
 static const char __pyx_k_os[] = "os";
+static const char __pyx_k_max[] = "max";
 static const char __pyx_k_new[] = "__new__";
 static const char __pyx_k_obj[] = "obj";
 static const char __pyx_k_sum[] = "sum";
 static const char __pyx_k_sys[] = "sys";
+static const char __pyx_k_axis[] = "axis";
 static const char __pyx_k_base[] = "base";
 static const char __pyx_k_dict[] = "__dict__";
 static const char __pyx_k_intc[] = "intc";
@@ -2177,6 +2179,7 @@ static const char __pyx_k_ValueError[] = "ValueError";
 static const char __pyx_k_batch_size[] = "batch_size";
 static const char __pyx_k_dag_search[] = "dag_search";
 static const char __pyx_k_logits_idx[] = "logits_idx";
+static const char __pyx_k_output_len[] = "output_len";
 static const char __pyx_k_pyx_result[] = "__pyx_result";
 static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_start_init[] = "start_init";
@@ -2260,6 +2263,7 @@ static PyObject *__pyx_n_s_View_MemoryView;
 static PyObject *__pyx_n_s_abspath;
 static PyObject *__pyx_n_s_allocate_buffer;
 static PyObject *__pyx_n_s_alpha;
+static PyObject *__pyx_n_s_axis;
 static PyObject *__pyx_n_s_base;
 static PyObject *__pyx_n_s_batch_size;
 static PyObject *__pyx_n_s_beam_search_init;
@@ -2303,6 +2307,7 @@ static PyObject *__pyx_n_s_lm_vocab;
 static PyObject *__pyx_n_s_lm_vocab_view;
 static PyObject *__pyx_n_s_logits_idx;
 static PyObject *__pyx_n_s_main;
+static PyObject *__pyx_n_s_max;
 static PyObject *__pyx_n_s_max_token;
 static PyObject *__pyx_n_s_maxpos;
 static PyObject *__pyx_n_s_maxtoken;
@@ -2320,6 +2325,7 @@ static PyObject *__pyx_n_s_np;
 static PyObject *__pyx_n_s_numpy;
 static PyObject *__pyx_n_s_obj;
 static PyObject *__pyx_n_s_os;
+static PyObject *__pyx_n_s_output_len;
 static PyObject *__pyx_n_s_output_length;
 static PyObject *__pyx_n_s_pack;
 static PyObject *__pyx_n_s_pad_id;
@@ -2429,7 +2435,7 @@ static PyObject *__pyx_int_112105877;
 static PyObject *__pyx_int_136983863;
 static PyObject *__pyx_int_184977713;
 static PyObject *__pyx_int_neg_1;
-static PyObject *__pyx_tuple_;
+static PyObject *__pyx_slice_;
 static PyObject *__pyx_tuple__2;
 static PyObject *__pyx_tuple__3;
 static PyObject *__pyx_tuple__4;
@@ -2438,12 +2444,12 @@ static PyObject *__pyx_tuple__6;
 static PyObject *__pyx_tuple__7;
 static PyObject *__pyx_tuple__8;
 static PyObject *__pyx_tuple__9;
-static PyObject *__pyx_slice__15;
 static PyObject *__pyx_tuple__10;
 static PyObject *__pyx_tuple__11;
 static PyObject *__pyx_tuple__12;
 static PyObject *__pyx_tuple__13;
 static PyObject *__pyx_tuple__14;
+static PyObject *__pyx_tuple__15;
 static PyObject *__pyx_tuple__16;
 static PyObject *__pyx_tuple__17;
 static PyObject *__pyx_tuple__18;
@@ -3254,6 +3260,7 @@ static PyObject *__pyx_pf_10dag_search_2dag_search(CYTHON_UNUSED PyObject *__pyx
   PyObject *__pyx_v_start3 = NULL;
   PyObject *__pyx_v_result = NULL;
   PyObject *__pyx_v_score = NULL;
+  PyObject *__pyx_v_output_len = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -3874,7 +3881,7 @@ static PyObject *__pyx_pf_10dag_search_2dag_search(CYTHON_UNUSED PyObject *__pyx
  *     if SearchBeam.__debug_flag:
  *         printf("dag_search: after traverse\n")             # <<<<<<<<<<<<<<
  *         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")
- *     return result, score
+ *     output_len = (result != pad_id).sum(axis=-1).max()
  */
     (void)(__printf(((char const *)"dag_search: after traverse\n")));
 
@@ -3882,8 +3889,8 @@ static PyObject *__pyx_pf_10dag_search_2dag_search(CYTHON_UNUSED PyObject *__pyx
  *     if SearchBeam.__debug_flag:
  *         printf("dag_search: after traverse\n")
  *         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")             # <<<<<<<<<<<<<<
- *     return result, score
- * 
+ *     output_len = (result != pad_id).sum(axis=-1).max()
+ *     return result[:, :output_len], score
  */
     __pyx_t_3 = PyTuple_New(6); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 102, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
@@ -3951,21 +3958,76 @@ static PyObject *__pyx_pf_10dag_search_2dag_search(CYTHON_UNUSED PyObject *__pyx
   /* "dag_search.pyx":103
  *         printf("dag_search: after traverse\n")
  *         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")
- *     return result, score             # <<<<<<<<<<<<<<
+ *     output_len = (result != pad_id).sum(axis=-1).max()             # <<<<<<<<<<<<<<
+ *     return result[:, :output_len], score
+ * 
+ */
+  __pyx_t_5 = __Pyx_PyInt_From_int(__pyx_v_pad_id); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_10 = PyObject_RichCompare(__pyx_v_result, __pyx_t_5, Py_NE); __Pyx_XGOTREF(__pyx_t_10); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_10, __pyx_n_s_sum); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+  __pyx_t_10 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_10);
+  if (PyDict_SetItem(__pyx_t_10, __pyx_n_s_axis, __pyx_int_neg_1) < 0) __PYX_ERR(0, 103, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_empty_tuple, __pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+  __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_max); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_10);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = NULL;
+  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_10))) {
+    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_10);
+    if (likely(__pyx_t_2)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_10);
+      __Pyx_INCREF(__pyx_t_2);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_10, function);
+    }
+  }
+  __pyx_t_3 = (__pyx_t_2) ? __Pyx_PyObject_CallOneArg(__pyx_t_10, __pyx_t_2) : __Pyx_PyObject_CallNoArg(__pyx_t_10);
+  __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+  __pyx_v_output_len = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "dag_search.pyx":104
+ *         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")
+ *     output_len = (result != pad_id).sum(axis=-1).max()
+ *     return result[:, :output_len], score             # <<<<<<<<<<<<<<
  * 
  * @cython.wraparound(False)
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __pyx_t_3 = PySlice_New(Py_None, __pyx_v_output_len, Py_None); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 104, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_INCREF(__pyx_v_result);
-  __Pyx_GIVEREF(__pyx_v_result);
-  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_result);
+  __pyx_t_10 = PyTuple_New(2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 104, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_10);
+  __Pyx_INCREF(__pyx_slice_);
+  __Pyx_GIVEREF(__pyx_slice_);
+  PyTuple_SET_ITEM(__pyx_t_10, 0, __pyx_slice_);
+  __Pyx_GIVEREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_10, 1, __pyx_t_3);
+  __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_result, __pyx_t_10); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 104, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+  __pyx_t_10 = PyTuple_New(2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 104, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_10);
+  __Pyx_GIVEREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_10, 0, __pyx_t_3);
   __Pyx_INCREF(__pyx_v_score);
   __Pyx_GIVEREF(__pyx_v_score);
-  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_score);
-  __pyx_r = __pyx_t_3;
+  PyTuple_SET_ITEM(__pyx_t_10, 1, __pyx_v_score);
   __pyx_t_3 = 0;
+  __pyx_r = __pyx_t_10;
+  __pyx_t_10 = 0;
   goto __pyx_L0;
 
   /* "dag_search.pyx":58
@@ -3996,6 +4058,7 @@ static PyObject *__pyx_pf_10dag_search_2dag_search(CYTHON_UNUSED PyObject *__pyx
   __Pyx_XDECREF(__pyx_v_start3);
   __Pyx_XDECREF(__pyx_v_result);
   __Pyx_XDECREF(__pyx_v_score);
+  __Pyx_XDECREF(__pyx_v_output_len);
   __PYX_XDEC_MEMVIEW(&__pyx_v_dagscores, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_v_nextstep_idx, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_v_logits_idx, 1);
@@ -4005,7 +4068,7 @@ static PyObject *__pyx_pf_10dag_search_2dag_search(CYTHON_UNUSED PyObject *__pyx
   return __pyx_r;
 }
 
-/* "dag_search.pyx":107
+/* "dag_search.pyx":108
  * @cython.wraparound(False)
  * @cython.boundscheck(False)
  * cdef void get_beam(int batch_size, int step, int[::1] output_length,             # <<<<<<<<<<<<<<
@@ -4041,7 +4104,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
 
-  /* "dag_search.pyx":121
+  /* "dag_search.pyx":122
  *     # step1: find all first beamlensize at (batch_id=i, length=j)
  * 
  *     block = step // 5 + 1             # <<<<<<<<<<<<<<
@@ -4050,7 +4113,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
   __pyx_v_block = (__Pyx_div_long(__pyx_v_step, 5) + 1);
 
-  /* "dag_search.pyx":123
+  /* "dag_search.pyx":124
  *     block = step // 5 + 1
  * 
  *     for pid in prange(batch_size * block * 5, nogil=True, schedule="guided"):             # <<<<<<<<<<<<<<
@@ -4112,7 +4175,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                             __pyx_v_root = ((struct Notify *)1);
                             __pyx_v_root_atomic = ((std::atomic<struct Notify *>  *)1);
 
-                            /* "dag_search.pyx":125
+                            /* "dag_search.pyx":126
  *     for pid in prange(batch_size * block * 5, nogil=True, schedule="guided"):
  * 
  *         i = pid // (block * 5) # batch             # <<<<<<<<<<<<<<
@@ -4128,7 +4191,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               #ifdef WITH_THREAD
                               __Pyx_PyGILState_Release(__pyx_gilstate_save);
                               #endif
-                              __PYX_ERR(0, 125, __pyx_L8_error)
+                              __PYX_ERR(0, 126, __pyx_L8_error)
                             }
                             else if (sizeof(long) == sizeof(long) && (!(((long)-1) > 0)) && unlikely(__pyx_t_4 == (long)-1)  && unlikely(UNARY_NEG_WOULD_OVERFLOW(__pyx_v_pid))) {
                               #ifdef WITH_THREAD
@@ -4138,11 +4201,11 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               #ifdef WITH_THREAD
                               __Pyx_PyGILState_Release(__pyx_gilstate_save);
                               #endif
-                              __PYX_ERR(0, 125, __pyx_L8_error)
+                              __PYX_ERR(0, 126, __pyx_L8_error)
                             }
                             __pyx_v_i = __Pyx_div_long(__pyx_v_pid, __pyx_t_4);
 
-                            /* "dag_search.pyx":126
+                            /* "dag_search.pyx":127
  * 
  *         i = pid // (block * 5) # batch
  *         j = pid % (block * 5)  # step             # <<<<<<<<<<<<<<
@@ -4158,11 +4221,11 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               #ifdef WITH_THREAD
                               __Pyx_PyGILState_Release(__pyx_gilstate_save);
                               #endif
-                              __PYX_ERR(0, 126, __pyx_L8_error)
+                              __PYX_ERR(0, 127, __pyx_L8_error)
                             }
                             __pyx_v_j = __Pyx_mod_long(__pyx_v_pid, __pyx_t_4);
 
-                            /* "dag_search.pyx":127
+                            /* "dag_search.pyx":128
  *         i = pid // (block * 5) # batch
  *         j = pid % (block * 5)  # step
  *         j = j // block + (j % block) * 5             # <<<<<<<<<<<<<<
@@ -4177,7 +4240,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               #ifdef WITH_THREAD
                               __Pyx_PyGILState_Release(__pyx_gilstate_save);
                               #endif
-                              __PYX_ERR(0, 127, __pyx_L8_error)
+                              __PYX_ERR(0, 128, __pyx_L8_error)
                             }
                             else if (sizeof(int) == sizeof(long) && (!(((int)-1) > 0)) && unlikely(__pyx_v_block == (int)-1)  && unlikely(UNARY_NEG_WOULD_OVERFLOW(__pyx_v_j))) {
                               #ifdef WITH_THREAD
@@ -4187,7 +4250,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               #ifdef WITH_THREAD
                               __Pyx_PyGILState_Release(__pyx_gilstate_save);
                               #endif
-                              __PYX_ERR(0, 127, __pyx_L8_error)
+                              __PYX_ERR(0, 128, __pyx_L8_error)
                             }
                             if (unlikely(__pyx_v_block == 0)) {
                               #ifdef WITH_THREAD
@@ -4197,11 +4260,11 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               #ifdef WITH_THREAD
                               __Pyx_PyGILState_Release(__pyx_gilstate_save);
                               #endif
-                              __PYX_ERR(0, 127, __pyx_L8_error)
+                              __PYX_ERR(0, 128, __pyx_L8_error)
                             }
                             __pyx_v_j = (__Pyx_div_int(__pyx_v_j, __pyx_v_block) + (__Pyx_mod_int(__pyx_v_j, __pyx_v_block) * 5));
 
-                            /* "dag_search.pyx":128
+                            /* "dag_search.pyx":129
  *         j = pid % (block * 5)  # step
  *         j = j // block + (j % block) * 5
  *         if j > step:             # <<<<<<<<<<<<<<
@@ -4211,7 +4274,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                             __pyx_t_5 = ((__pyx_v_j > __pyx_v_step) != 0);
                             if (__pyx_t_5) {
 
-                              /* "dag_search.pyx":129
+                              /* "dag_search.pyx":130
  *         j = j // block + (j % block) * 5
  *         if j > step:
  *             continue             # <<<<<<<<<<<<<<
@@ -4220,7 +4283,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               goto __pyx_L6_continue;
 
-                              /* "dag_search.pyx":128
+                              /* "dag_search.pyx":129
  *         j = pid % (block * 5)  # step
  *         j = j // block + (j % block) * 5
  *         if j > step:             # <<<<<<<<<<<<<<
@@ -4229,7 +4292,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                             }
 
-                            /* "dag_search.pyx":131
+                            /* "dag_search.pyx":132
  *             continue
  * 
  *         beam = beams[i * SearchBeam.max_pos + j]             # <<<<<<<<<<<<<<
@@ -4238,7 +4301,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                             __pyx_v_beam = (beams[((__pyx_v_i * max_pos) + __pyx_v_j)]);
 
-                            /* "dag_search.pyx":132
+                            /* "dag_search.pyx":133
  * 
  *         beam = beams[i * SearchBeam.max_pos + j]
  *         if step < output_length[i]:             # <<<<<<<<<<<<<<
@@ -4249,7 +4312,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                             __pyx_t_5 = ((__pyx_v_step < (*((int *) ( /* dim=0 */ ((char *) (((int *) __pyx_v_output_length.data) + __pyx_t_6)) )))) != 0);
                             if (__pyx_t_5) {
 
-                              /* "dag_search.pyx":133
+                              /* "dag_search.pyx":134
  *         beam = beams[i * SearchBeam.max_pos + j]
  *         if step < output_length[i]:
  *             beam.clear()             # <<<<<<<<<<<<<<
@@ -4258,7 +4321,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               __pyx_v_beam->clear();
 
-                              /* "dag_search.pyx":135
+                              /* "dag_search.pyx":136
  *             beam.clear()
  * 
  *             now_beam_size = 1 if step == output_length[i] - 1 else beamlensize             # <<<<<<<<<<<<<<
@@ -4273,7 +4336,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               }
                               __pyx_v_now_beam_size = __pyx_t_7;
 
-                              /* "dag_search.pyx":137
+                              /* "dag_search.pyx":138
  *             now_beam_size = 1 if step == output_length[i] - 1 else beamlensize
  * 
  *             root_atomic = node_notify_map_atomic[i].get(make_pair(<int>step, <int>j), memory_order.memory_order_relaxed)             # <<<<<<<<<<<<<<
@@ -4282,7 +4345,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               __pyx_v_root_atomic = (node_notify_map_atomic[__pyx_v_i])->get(std::make_pair<int,int>(((int)__pyx_v_step), ((int)__pyx_v_j)), std::memory_order_relaxed);
 
-                              /* "dag_search.pyx":138
+                              /* "dag_search.pyx":139
  * 
  *             root_atomic = node_notify_map_atomic[i].get(make_pair(<int>step, <int>j), memory_order.memory_order_relaxed)
  *             if root_atomic == <atomic[Notify*]*>0:             # <<<<<<<<<<<<<<
@@ -4292,7 +4355,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               __pyx_t_5 = ((__pyx_v_root_atomic == ((std::atomic<struct Notify *>  *)0)) != 0);
                               if (__pyx_t_5) {
 
-                                /* "dag_search.pyx":139
+                                /* "dag_search.pyx":140
  *             root_atomic = node_notify_map_atomic[i].get(make_pair(<int>step, <int>j), memory_order.memory_order_relaxed)
  *             if root_atomic == <atomic[Notify*]*>0:
  *                 continue             # <<<<<<<<<<<<<<
@@ -4301,7 +4364,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                                 goto __pyx_L6_continue;
 
-                                /* "dag_search.pyx":138
+                                /* "dag_search.pyx":139
  * 
  *             root_atomic = node_notify_map_atomic[i].get(make_pair(<int>step, <int>j), memory_order.memory_order_relaxed)
  *             if root_atomic == <atomic[Notify*]*>0:             # <<<<<<<<<<<<<<
@@ -4310,7 +4373,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               }
 
-                              /* "dag_search.pyx":140
+                              /* "dag_search.pyx":141
  *             if root_atomic == <atomic[Notify*]*>0:
  *                 continue
  *             root = root_atomic.load(memory_order.memory_order_relaxed)             # <<<<<<<<<<<<<<
@@ -4319,7 +4382,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               __pyx_v_root = __pyx_v_root_atomic->load(std::memory_order_relaxed);
 
-                              /* "dag_search.pyx":142
+                              /* "dag_search.pyx":143
  *             root = root_atomic.load(memory_order.memory_order_relaxed)
  *             # printf("getbeam batch=%d notify_root=%p\n", i, root)
  *             while root != <Notify*>0:             # <<<<<<<<<<<<<<
@@ -4330,7 +4393,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                 __pyx_t_5 = ((__pyx_v_root != ((struct Notify *)0)) != 0);
                                 if (!__pyx_t_5) break;
 
-                                /* "dag_search.pyx":143
+                                /* "dag_search.pyx":144
  *             # printf("getbeam batch=%d notify_root=%p\n", i, root)
  *             while root != <Notify*>0:
  *                 beam.push_back(make_pair(calculate_score(root.target, alpha, gamma), <SearchNode_pt>root.target))             # <<<<<<<<<<<<<<
@@ -4347,10 +4410,10 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                   #ifdef WITH_THREAD
                                   __Pyx_PyGILState_Release(__pyx_gilstate_save);
                                   #endif
-                                  __PYX_ERR(0, 143, __pyx_L8_error)
+                                  __PYX_ERR(0, 144, __pyx_L8_error)
                                 }
 
-                                /* "dag_search.pyx":144
+                                /* "dag_search.pyx":145
  *             while root != <Notify*>0:
  *                 beam.push_back(make_pair(calculate_score(root.target, alpha, gamma), <SearchNode_pt>root.target))
  *                 root = root.next             # <<<<<<<<<<<<<<
@@ -4361,7 +4424,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                 __pyx_v_root = __pyx_t_8;
                               }
 
-                              /* "dag_search.pyx":145
+                              /* "dag_search.pyx":146
  *                 beam.push_back(make_pair(calculate_score(root.target, alpha, gamma), <SearchNode_pt>root.target))
  *                 root = root.next
  *             if (<int>beam.size()) > now_beam_size:             # <<<<<<<<<<<<<<
@@ -4371,7 +4434,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               __pyx_t_5 = ((((int)__pyx_v_beam->size()) > __pyx_v_now_beam_size) != 0);
                               if (__pyx_t_5) {
 
-                                /* "dag_search.pyx":146
+                                /* "dag_search.pyx":147
  *                 root = root.next
  *             if (<int>beam.size()) > now_beam_size:
  *                 nth_element(beam.begin(), beam.begin() + now_beam_size, beam.end(),             # <<<<<<<<<<<<<<
@@ -4388,10 +4451,10 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                   #ifdef WITH_THREAD
                                   __Pyx_PyGILState_Release(__pyx_gilstate_save);
                                   #endif
-                                  __PYX_ERR(0, 146, __pyx_L8_error)
+                                  __PYX_ERR(0, 147, __pyx_L8_error)
                                 }
 
-                                /* "dag_search.pyx":148
+                                /* "dag_search.pyx":149
  *                 nth_element(beam.begin(), beam.begin() + now_beam_size, beam.end(),
  *                      node_compare_allscore)
  *                 beam.resize(now_beam_size)             # <<<<<<<<<<<<<<
@@ -4408,10 +4471,10 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                   #ifdef WITH_THREAD
                                   __Pyx_PyGILState_Release(__pyx_gilstate_save);
                                   #endif
-                                  __PYX_ERR(0, 148, __pyx_L8_error)
+                                  __PYX_ERR(0, 149, __pyx_L8_error)
                                 }
 
-                                /* "dag_search.pyx":145
+                                /* "dag_search.pyx":146
  *                 beam.push_back(make_pair(calculate_score(root.target, alpha, gamma), <SearchNode_pt>root.target))
  *                 root = root.next
  *             if (<int>beam.size()) > now_beam_size:             # <<<<<<<<<<<<<<
@@ -4420,7 +4483,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               }
 
-                              /* "dag_search.pyx":132
+                              /* "dag_search.pyx":133
  * 
  *         beam = beams[i * SearchBeam.max_pos + j]
  *         if step < output_length[i]:             # <<<<<<<<<<<<<<
@@ -4523,7 +4586,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
         #endif
       }
 
-      /* "dag_search.pyx":123
+      /* "dag_search.pyx":124
  *     block = step // 5 + 1
  * 
  *     for pid in prange(batch_size * block * 5, nogil=True, schedule="guided"):             # <<<<<<<<<<<<<<
@@ -4549,7 +4612,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
       }
   }
 
-  /* "dag_search.pyx":153
+  /* "dag_search.pyx":154
  * 
  *     # step2: find beamsize at batch=i
  *     for i in prange(batch_size, nogil=True, schedule="guided"):             # <<<<<<<<<<<<<<
@@ -4607,7 +4670,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                             __pyx_v_node = ((struct SearchNode *)1);
                             __pyx_v_now_beam_size = ((int)0xbad0bad0);
 
-                            /* "dag_search.pyx":157
+                            /* "dag_search.pyx":158
  *         # printf("get_beam-step2-prange-start tid:%d pid:%d\n", tid, i)
  * 
  *         beam = beams[i * SearchBeam.max_pos]             # <<<<<<<<<<<<<<
@@ -4616,7 +4679,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                             __pyx_v_beam = (beams[(__pyx_v_i * max_pos)]);
 
-                            /* "dag_search.pyx":158
+                            /* "dag_search.pyx":159
  * 
  *         beam = beams[i * SearchBeam.max_pos]
  *         if step < output_length[i]:             # <<<<<<<<<<<<<<
@@ -4627,7 +4690,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                             __pyx_t_5 = ((__pyx_v_step < (*((int *) ( /* dim=0 */ ((char *) (((int *) __pyx_v_output_length.data) + __pyx_t_6)) )))) != 0);
                             if (__pyx_t_5) {
 
-                              /* "dag_search.pyx":159
+                              /* "dag_search.pyx":160
  *         beam = beams[i * SearchBeam.max_pos]
  *         if step < output_length[i]:
  *             now_beam_size = 1 if step == output_length[i] - 1 else beam_size             # <<<<<<<<<<<<<<
@@ -4642,7 +4705,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               }
                               __pyx_v_now_beam_size = __pyx_t_11;
 
-                              /* "dag_search.pyx":161
+                              /* "dag_search.pyx":162
  *             now_beam_size = 1 if step == output_length[i] - 1 else beam_size
  * 
  *             for j in range(1, step + 1):             # <<<<<<<<<<<<<<
@@ -4654,7 +4717,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               for (__pyx_t_11 = 1; __pyx_t_11 < __pyx_t_2; __pyx_t_11+=1) {
                                 __pyx_v_j = __pyx_t_11;
 
-                                /* "dag_search.pyx":162
+                                /* "dag_search.pyx":163
  * 
  *             for j in range(1, step + 1):
  *                 beam.insert(beam.end(), beams[i * SearchBeam.max_pos + j].begin(), beams[i * SearchBeam.max_pos + j].end())             # <<<<<<<<<<<<<<
@@ -4671,11 +4734,11 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                   #ifdef WITH_THREAD
                                   __Pyx_PyGILState_Release(__pyx_gilstate_save);
                                   #endif
-                                  __PYX_ERR(0, 162, __pyx_L23_error)
+                                  __PYX_ERR(0, 163, __pyx_L23_error)
                                 }
                               }
 
-                              /* "dag_search.pyx":163
+                              /* "dag_search.pyx":164
  *             for j in range(1, step + 1):
  *                 beam.insert(beam.end(), beams[i * SearchBeam.max_pos + j].begin(), beams[i * SearchBeam.max_pos + j].end())
  *             if (<int>beam.size()) > now_beam_size:             # <<<<<<<<<<<<<<
@@ -4685,7 +4748,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               __pyx_t_5 = ((((int)__pyx_v_beam->size()) > __pyx_v_now_beam_size) != 0);
                               if (__pyx_t_5) {
 
-                                /* "dag_search.pyx":164
+                                /* "dag_search.pyx":165
  *                 beam.insert(beam.end(), beams[i * SearchBeam.max_pos + j].begin(), beams[i * SearchBeam.max_pos + j].end())
  *             if (<int>beam.size()) > now_beam_size:
  *                 nth_element(beam.begin(), beam.begin() + now_beam_size, beam.end(),             # <<<<<<<<<<<<<<
@@ -4702,10 +4765,10 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                   #ifdef WITH_THREAD
                                   __Pyx_PyGILState_Release(__pyx_gilstate_save);
                                   #endif
-                                  __PYX_ERR(0, 164, __pyx_L23_error)
+                                  __PYX_ERR(0, 165, __pyx_L23_error)
                                 }
 
-                                /* "dag_search.pyx":166
+                                /* "dag_search.pyx":167
  *                 nth_element(beam.begin(), beam.begin() + now_beam_size, beam.end(),
  *                      node_compare_allscore)
  *                 beam.resize(now_beam_size)             # <<<<<<<<<<<<<<
@@ -4722,10 +4785,10 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                   #ifdef WITH_THREAD
                                   __Pyx_PyGILState_Release(__pyx_gilstate_save);
                                   #endif
-                                  __PYX_ERR(0, 166, __pyx_L23_error)
+                                  __PYX_ERR(0, 167, __pyx_L23_error)
                                 }
 
-                                /* "dag_search.pyx":163
+                                /* "dag_search.pyx":164
  *             for j in range(1, step + 1):
  *                 beam.insert(beam.end(), beams[i * SearchBeam.max_pos + j].begin(), beams[i * SearchBeam.max_pos + j].end())
  *             if (<int>beam.size()) > now_beam_size:             # <<<<<<<<<<<<<<
@@ -4734,7 +4797,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               }
 
-                              /* "dag_search.pyx":158
+                              /* "dag_search.pyx":159
  * 
  *         beam = beams[i * SearchBeam.max_pos]
  *         if step < output_length[i]:             # <<<<<<<<<<<<<<
@@ -4743,7 +4806,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                             }
 
-                            /* "dag_search.pyx":168
+                            /* "dag_search.pyx":169
  *                 beam.resize(now_beam_size)
  * 
  *         if SearchBeam.__debug_flag:             # <<<<<<<<<<<<<<
@@ -4753,7 +4816,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                             __pyx_t_5 = (__debug_flag != 0);
                             if (__pyx_t_5) {
 
-                              /* "dag_search.pyx":169
+                              /* "dag_search.pyx":170
  * 
  *         if SearchBeam.__debug_flag:
  *             printf("getbeam finished, batch=%d beams:\n", i, )             # <<<<<<<<<<<<<<
@@ -4762,7 +4825,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                               (void)(__printf(((char const *)"getbeam finished, batch=%d beams:\n"), __pyx_v_i));
 
-                              /* "dag_search.pyx":170
+                              /* "dag_search.pyx":171
  *         if SearchBeam.__debug_flag:
  *             printf("getbeam finished, batch=%d beams:\n", i, )
  *             for j in range(<int>beam.size()):             # <<<<<<<<<<<<<<
@@ -4774,7 +4837,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                               for (__pyx_t_13 = 0; __pyx_t_13 < __pyx_t_12; __pyx_t_13+=1) {
                                 __pyx_v_j = __pyx_t_13;
 
-                                /* "dag_search.pyx":171
+                                /* "dag_search.pyx":172
  *             printf("getbeam finished, batch=%d beams:\n", i, )
  *             for j in range(<int>beam.size()):
  *                 printf("\t[")             # <<<<<<<<<<<<<<
@@ -4783,7 +4846,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                                 (void)(__printf(((char const *)"\t[")));
 
-                                /* "dag_search.pyx":172
+                                /* "dag_search.pyx":173
  *             for j in range(<int>beam.size()):
  *                 printf("\t[")
  *                 node = deref(beam)[j].second             # <<<<<<<<<<<<<<
@@ -4793,7 +4856,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                 __pyx_t_14 = ((*__pyx_v_beam)[__pyx_v_j]).second;
                                 __pyx_v_node = __pyx_t_14;
 
-                                /* "dag_search.pyx":173
+                                /* "dag_search.pyx":174
  *                 printf("\t[")
  *                 node = deref(beam)[j].second
  *                 SearchBeam.__debug_print_node(node)             # <<<<<<<<<<<<<<
@@ -4802,7 +4865,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
  */
                                 __debug_print_node(__pyx_v_node);
 
-                                /* "dag_search.pyx":174
+                                /* "dag_search.pyx":175
  *                 node = deref(beam)[j].second
  *                 SearchBeam.__debug_print_node(node)
  *                 printf("] allscore=%f dagscore=%f lmscore=%f length=%d\n", deref(beam)[j].first, node.dagscore, node.lmscore, node.length)             # <<<<<<<<<<<<<<
@@ -4812,7 +4875,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
                                 (void)(__printf(((char const *)"] allscore=%f dagscore=%f lmscore=%f length=%d\n"), ((*__pyx_v_beam)[__pyx_v_j]).first, __pyx_v_node->dagscore, __pyx_v_node->lmscore, __pyx_v_node->length));
                               }
 
-                              /* "dag_search.pyx":168
+                              /* "dag_search.pyx":169
  *                 beam.resize(now_beam_size)
  * 
  *         if SearchBeam.__debug_flag:             # <<<<<<<<<<<<<<
@@ -4909,7 +4972,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
         #endif
       }
 
-      /* "dag_search.pyx":153
+      /* "dag_search.pyx":154
  * 
  *     # step2: find beamsize at batch=i
  *     for i in prange(batch_size, nogil=True, schedule="guided"):             # <<<<<<<<<<<<<<
@@ -4935,7 +4998,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
       }
   }
 
-  /* "dag_search.pyx":107
+  /* "dag_search.pyx":108
  * @cython.wraparound(False)
  * @cython.boundscheck(False)
  * cdef void get_beam(int batch_size, int step, int[::1] output_length,             # <<<<<<<<<<<<<<
@@ -4950,7 +5013,7 @@ static void __pyx_f_10dag_search_get_beam(CYTHON_UNUSED int __pyx_v_batch_size, 
   __pyx_L0:;
 }
 
-/* "dag_search.pyx":180
+/* "dag_search.pyx":181
  * @cython.wraparound(False)
  * @cython.boundscheck(False)
  * cdef void traverse_beam(int batch_size, int pad_id, int[:, ::1] result, float[::1] score, int dedup) nogil:             # <<<<<<<<<<<<<<
@@ -4967,7 +5030,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
   float __pyx_t_4;
   Py_ssize_t __pyx_t_5;
 
-  /* "dag_search.pyx":183
+  /* "dag_search.pyx":184
  *     cdef int i
  *     cdef pair[float, SearchNode_pt] node_pair
  *     for i in prange(batch_size, nogil=True, schedule="guided"):             # <<<<<<<<<<<<<<
@@ -5004,7 +5067,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
                         {
                             __pyx_v_i = (int)(0 + 1 * __pyx_t_2);
 
-                            /* "dag_search.pyx":184
+                            /* "dag_search.pyx":185
  *     cdef pair[float, SearchNode_pt] node_pair
  *     for i in prange(batch_size, nogil=True, schedule="guided"):
  *         node_pair = deref(beams[i * SearchBeam.max_pos])[0]             # <<<<<<<<<<<<<<
@@ -5013,7 +5076,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
  */
                             __pyx_v_node_pair = ((*(beams[(__pyx_v_i * max_pos)]))[0]);
 
-                            /* "dag_search.pyx":185
+                            /* "dag_search.pyx":186
  *     for i in prange(batch_size, nogil=True, schedule="guided"):
  *         node_pair = deref(beams[i * SearchBeam.max_pos])[0]
  *         score[i] = node_pair.first             # <<<<<<<<<<<<<<
@@ -5024,7 +5087,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
                             __pyx_t_5 = __pyx_v_i;
                             *((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_score.data) + __pyx_t_5)) )) = __pyx_t_4;
 
-                            /* "dag_search.pyx":186
+                            /* "dag_search.pyx":187
  *         node_pair = deref(beams[i * SearchBeam.max_pos])[0]
  *         score[i] = node_pair.first
  *         traverse_beam_single(node_pair.second, i, pad_id, result, dedup)             # <<<<<<<<<<<<<<
@@ -5045,7 +5108,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
         #endif
       }
 
-      /* "dag_search.pyx":183
+      /* "dag_search.pyx":184
  *     cdef int i
  *     cdef pair[float, SearchNode_pt] node_pair
  *     for i in prange(batch_size, nogil=True, schedule="guided"):             # <<<<<<<<<<<<<<
@@ -5064,7 +5127,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
       }
   }
 
-  /* "dag_search.pyx":180
+  /* "dag_search.pyx":181
  * @cython.wraparound(False)
  * @cython.boundscheck(False)
  * cdef void traverse_beam(int batch_size, int pad_id, int[:, ::1] result, float[::1] score, int dedup) nogil:             # <<<<<<<<<<<<<<
@@ -5075,7 +5138,7 @@ static void __pyx_f_10dag_search_traverse_beam(CYTHON_UNUSED int __pyx_v_batch_s
   /* function exit code */
 }
 
-/* "dag_search.pyx":191
+/* "dag_search.pyx":192
  * @cython.wraparound(False)
  * @cython.boundscheck(False)
  * cdef void traverse_beam_single(SearchNode* beam, int batch, int pad_id, int[:, ::1] result, int dedup) nogil:             # <<<<<<<<<<<<<<
@@ -5096,7 +5159,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
   Py_ssize_t __pyx_t_7;
   Py_ssize_t __pyx_t_8;
 
-  /* "dag_search.pyx":192
+  /* "dag_search.pyx":193
  * @cython.boundscheck(False)
  * cdef void traverse_beam_single(SearchNode* beam, int batch, int pad_id, int[:, ::1] result, int dedup) nogil:
  *     cdef int length = result.shape[1]             # <<<<<<<<<<<<<<
@@ -5105,7 +5168,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
   __pyx_v_length = (__pyx_v_result.shape[1]);
 
-  /* "dag_search.pyx":195
+  /* "dag_search.pyx":196
  *     cdef int pos, i
  * 
  *     pos = length - 1             # <<<<<<<<<<<<<<
@@ -5114,7 +5177,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
   __pyx_v_pos = (__pyx_v_length - 1);
 
-  /* "dag_search.pyx":196
+  /* "dag_search.pyx":197
  * 
  *     pos = length - 1
  *     while beam != <SearchBeam.SearchNode*>0:             # <<<<<<<<<<<<<<
@@ -5125,7 +5188,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_t_1 = ((__pyx_v_beam != ((struct SearchNode *)0)) != 0);
     if (!__pyx_t_1) break;
 
-    /* "dag_search.pyx":197
+    /* "dag_search.pyx":198
  *     pos = length - 1
  *     while beam != <SearchBeam.SearchNode*>0:
  *         result[batch, pos] = beam.word             # <<<<<<<<<<<<<<
@@ -5137,7 +5200,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_t_4 = __pyx_v_pos;
     *((int *) ( /* dim=1 */ ((char *) (((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_3 * __pyx_v_result.strides[0]) )) + __pyx_t_4)) )) = __pyx_t_2;
 
-    /* "dag_search.pyx":198
+    /* "dag_search.pyx":199
  *     while beam != <SearchBeam.SearchNode*>0:
  *         result[batch, pos] = beam.word
  *         pos -= 1             # <<<<<<<<<<<<<<
@@ -5146,7 +5209,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
     __pyx_v_pos = (__pyx_v_pos - 1);
 
-    /* "dag_search.pyx":199
+    /* "dag_search.pyx":200
  *         result[batch, pos] = beam.word
  *         pos -= 1
  *         beam = beam.parent             # <<<<<<<<<<<<<<
@@ -5157,7 +5220,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_v_beam = __pyx_t_5;
   }
 
-  /* "dag_search.pyx":200
+  /* "dag_search.pyx":201
  *         pos -= 1
  *         beam = beam.parent
  *     i = 0             # <<<<<<<<<<<<<<
@@ -5166,7 +5229,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
   __pyx_v_i = 0;
 
-  /* "dag_search.pyx":201
+  /* "dag_search.pyx":202
  *         beam = beam.parent
  *     i = 0
  *     pos += 1             # <<<<<<<<<<<<<<
@@ -5175,7 +5238,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
   __pyx_v_pos = (__pyx_v_pos + 1);
 
-  /* "dag_search.pyx":202
+  /* "dag_search.pyx":203
  *     i = 0
  *     pos += 1
  *     while pos < length:             # <<<<<<<<<<<<<<
@@ -5186,7 +5249,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_t_1 = ((__pyx_v_pos < __pyx_v_length) != 0);
     if (!__pyx_t_1) break;
 
-    /* "dag_search.pyx":203
+    /* "dag_search.pyx":204
  *     pos += 1
  *     while pos < length:
  *         if dedup > 0 and i > 0 and result[batch, i - 1] == result[batch, pos]:             # <<<<<<<<<<<<<<
@@ -5214,7 +5277,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_L8_bool_binop_done:;
     if (__pyx_t_1) {
 
-      /* "dag_search.pyx":204
+      /* "dag_search.pyx":205
  *     while pos < length:
  *         if dedup > 0 and i > 0 and result[batch, i - 1] == result[batch, pos]:
  *             pos += 1             # <<<<<<<<<<<<<<
@@ -5223,7 +5286,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
       __pyx_v_pos = (__pyx_v_pos + 1);
 
-      /* "dag_search.pyx":203
+      /* "dag_search.pyx":204
  *     pos += 1
  *     while pos < length:
  *         if dedup > 0 and i > 0 and result[batch, i - 1] == result[batch, pos]:             # <<<<<<<<<<<<<<
@@ -5233,7 +5296,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
       goto __pyx_L7;
     }
 
-    /* "dag_search.pyx":206
+    /* "dag_search.pyx":207
  *             pos += 1
  *         else:
  *             result[batch, i] = result[batch, pos]             # <<<<<<<<<<<<<<
@@ -5247,7 +5310,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
       __pyx_t_4 = __pyx_v_i;
       *((int *) ( /* dim=1 */ ((char *) (((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_3 * __pyx_v_result.strides[0]) )) + __pyx_t_4)) )) = (*((int *) ( /* dim=1 */ ((char *) (((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_8 * __pyx_v_result.strides[0]) )) + __pyx_t_7)) )));
 
-      /* "dag_search.pyx":207
+      /* "dag_search.pyx":208
  *         else:
  *             result[batch, i] = result[batch, pos]
  *             i += 1             # <<<<<<<<<<<<<<
@@ -5256,7 +5319,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
  */
       __pyx_v_i = (__pyx_v_i + 1);
 
-      /* "dag_search.pyx":208
+      /* "dag_search.pyx":209
  *             result[batch, i] = result[batch, pos]
  *             i += 1
  *             pos += 1             # <<<<<<<<<<<<<<
@@ -5268,7 +5331,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_L7:;
   }
 
-  /* "dag_search.pyx":209
+  /* "dag_search.pyx":210
  *             i += 1
  *             pos += 1
  *     while i < length:             # <<<<<<<<<<<<<<
@@ -5279,7 +5342,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_t_1 = ((__pyx_v_i < __pyx_v_length) != 0);
     if (!__pyx_t_1) break;
 
-    /* "dag_search.pyx":210
+    /* "dag_search.pyx":211
  *             pos += 1
  *     while i < length:
  *         result[batch, i] = pad_id             # <<<<<<<<<<<<<<
@@ -5289,7 +5352,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_t_8 = __pyx_v_i;
     *((int *) ( /* dim=1 */ ((char *) (((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_7 * __pyx_v_result.strides[0]) )) + __pyx_t_8)) )) = __pyx_v_pad_id;
 
-    /* "dag_search.pyx":211
+    /* "dag_search.pyx":212
  *     while i < length:
  *         result[batch, i] = pad_id
  *         i += 1             # <<<<<<<<<<<<<<
@@ -5297,7 +5360,7 @@ static void __pyx_f_10dag_search_traverse_beam_single(struct SearchNode *__pyx_v
     __pyx_v_i = (__pyx_v_i + 1);
   }
 
-  /* "dag_search.pyx":191
+  /* "dag_search.pyx":192
  * @cython.wraparound(False)
  * @cython.boundscheck(False)
  * cdef void traverse_beam_single(SearchNode* beam, int batch, int pad_id, int[:, ::1] result, int dedup) nogil:             # <<<<<<<<<<<<<<
@@ -5511,7 +5574,7 @@ static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __
  * 
  *         if itemsize <= 0:
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 134, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__2, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 134, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -5543,7 +5606,7 @@ static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __
  * 
  *         if not isinstance(format, bytes):
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__2, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 137, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 137, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -5670,7 +5733,7 @@ static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __
  * 
  * 
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_MemoryError, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 149, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_MemoryError, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 149, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -5944,7 +6007,7 @@ static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __
  * 
  *             if self.dtype_is_object:
  */
-      __pyx_t_10 = __Pyx_PyObject_Call(__pyx_builtin_MemoryError, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_10)) __PYX_ERR(1, 177, __pyx_L1_error)
+      __pyx_t_10 = __Pyx_PyObject_Call(__pyx_builtin_MemoryError, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_10)) __PYX_ERR(1, 177, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_10);
       __Pyx_Raise(__pyx_t_10, 0, 0, 0);
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
@@ -6188,7 +6251,7 @@ static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(stru
  *         info.buf = self.data
  *         info.len = self.len
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 193, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__6, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 193, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -6922,7 +6985,7 @@ static PyObject *__pyx_pf___pyx_array___reduce_cython__(CYTHON_UNUSED struct __p
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__6, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 2, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__7, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 2, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_Raise(__pyx_t_1, 0, 0, 0);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -6978,7 +7041,7 @@ static PyObject *__pyx_pf___pyx_array_2__setstate_cython__(CYTHON_UNUSED struct 
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")             # <<<<<<<<<<<<<<
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__7, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 4, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__8, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 4, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_Raise(__pyx_t_1, 0, 0, 0);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -8707,7 +8770,7 @@ static int __pyx_memoryview___pyx_pf_15View_dot_MemoryView_10memoryview_6__setit
  * 
  *         have_slices, index = _unellipsify(index, self.view.ndim)
  */
-    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__8, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 420, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__9, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 420, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_Raise(__pyx_t_2, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -9755,7 +9818,7 @@ static PyObject *__pyx_memoryview_convert_item_to_object(struct __pyx_memoryview
  *         else:
  *             if len(self.view.format) == 1:
  */
-      __pyx_t_6 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__9, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(1, 497, __pyx_L5_except_error)
+      __pyx_t_6 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__10, NULL); if (unlikely(!__pyx_t_6)) __PYX_ERR(1, 497, __pyx_L5_except_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_Raise(__pyx_t_6, 0, 0, 0);
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
@@ -10117,7 +10180,7 @@ static int __pyx_memoryview___pyx_pf_15View_dot_MemoryView_10memoryview_8__getbu
  * 
  *         if flags & PyBUF_ND:
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__10, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 522, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__11, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 522, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -10666,7 +10729,7 @@ static PyObject *__pyx_pf_15View_dot_MemoryView_10memoryview_7strides___get__(st
  * 
  *         return tuple([stride for stride in self.view.strides[:self.view.ndim]])
  */
-    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__11, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 572, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__12, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 572, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_Raise(__pyx_t_2, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -10783,7 +10846,7 @@ static PyObject *__pyx_pf_15View_dot_MemoryView_10memoryview_10suboffsets___get_
     __Pyx_XDECREF(__pyx_r);
     __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_self->view.ndim); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 579, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = PyNumber_Multiply(__pyx_tuple__12, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 579, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Multiply(__pyx_tuple__13, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 579, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_r = __pyx_t_3;
@@ -11821,7 +11884,7 @@ static PyObject *__pyx_pf___pyx_memoryview___reduce_cython__(CYTHON_UNUSED struc
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__13, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 2, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__14, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 2, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_Raise(__pyx_t_1, 0, 0, 0);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -11877,7 +11940,7 @@ static PyObject *__pyx_pf___pyx_memoryview_2__setstate_cython__(CYTHON_UNUSED st
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")             # <<<<<<<<<<<<<<
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__14, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 4, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__15, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 4, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_Raise(__pyx_t_1, 0, 0, 0);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -12234,9 +12297,9 @@ static PyObject *_unellipsify(PyObject *__pyx_v_index, int __pyx_v_ndim) {
         __Pyx_GOTREF(__pyx_t_7);
         { Py_ssize_t __pyx_temp;
           for (__pyx_temp=0; __pyx_temp < ((__pyx_v_ndim - __pyx_t_8) + 1); __pyx_temp++) {
-            __Pyx_INCREF(__pyx_slice__15);
-            __Pyx_GIVEREF(__pyx_slice__15);
-            PyList_SET_ITEM(__pyx_t_7, __pyx_temp, __pyx_slice__15);
+            __Pyx_INCREF(__pyx_slice_);
+            __Pyx_GIVEREF(__pyx_slice_);
+            PyList_SET_ITEM(__pyx_t_7, __pyx_temp, __pyx_slice_);
           }
         }
         __pyx_t_9 = __Pyx_PyList_Extend(__pyx_v_result, __pyx_t_7); if (unlikely(__pyx_t_9 == ((int)-1))) __PYX_ERR(1, 684, __pyx_L1_error)
@@ -12269,7 +12332,7 @@ static PyObject *_unellipsify(PyObject *__pyx_v_index, int __pyx_v_ndim) {
  *         else:
  */
       /*else*/ {
-        __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_result, __pyx_slice__15); if (unlikely(__pyx_t_9 == ((int)-1))) __PYX_ERR(1, 687, __pyx_L1_error)
+        __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_result, __pyx_slice_); if (unlikely(__pyx_t_9 == ((int)-1))) __PYX_ERR(1, 687, __pyx_L1_error)
       }
       __pyx_L7:;
 
@@ -12409,9 +12472,9 @@ static PyObject *_unellipsify(PyObject *__pyx_v_index, int __pyx_v_ndim) {
     __Pyx_GOTREF(__pyx_t_3);
     { Py_ssize_t __pyx_temp;
       for (__pyx_temp=0; __pyx_temp < __pyx_v_nslices; __pyx_temp++) {
-        __Pyx_INCREF(__pyx_slice__15);
-        __Pyx_GIVEREF(__pyx_slice__15);
-        PyList_SET_ITEM(__pyx_t_3, __pyx_temp, __pyx_slice__15);
+        __Pyx_INCREF(__pyx_slice_);
+        __Pyx_GIVEREF(__pyx_slice_);
+        PyList_SET_ITEM(__pyx_t_3, __pyx_temp, __pyx_slice_);
       }
     }
     __pyx_t_9 = __Pyx_PyList_Extend(__pyx_v_result, __pyx_t_3); if (unlikely(__pyx_t_9 == ((int)-1))) __PYX_ERR(1, 698, __pyx_L1_error)
@@ -19149,6 +19212,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_abspath, __pyx_k_abspath, sizeof(__pyx_k_abspath), 0, 0, 1, 1},
   {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
   {&__pyx_n_s_alpha, __pyx_k_alpha, sizeof(__pyx_k_alpha), 0, 0, 1, 1},
+  {&__pyx_n_s_axis, __pyx_k_axis, sizeof(__pyx_k_axis), 0, 0, 1, 1},
   {&__pyx_n_s_base, __pyx_k_base, sizeof(__pyx_k_base), 0, 0, 1, 1},
   {&__pyx_n_s_batch_size, __pyx_k_batch_size, sizeof(__pyx_k_batch_size), 0, 0, 1, 1},
   {&__pyx_n_s_beam_search_init, __pyx_k_beam_search_init, sizeof(__pyx_k_beam_search_init), 0, 0, 1, 1},
@@ -19192,6 +19256,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_lm_vocab_view, __pyx_k_lm_vocab_view, sizeof(__pyx_k_lm_vocab_view), 0, 0, 1, 1},
   {&__pyx_n_s_logits_idx, __pyx_k_logits_idx, sizeof(__pyx_k_logits_idx), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
+  {&__pyx_n_s_max, __pyx_k_max, sizeof(__pyx_k_max), 0, 0, 1, 1},
   {&__pyx_n_s_max_token, __pyx_k_max_token, sizeof(__pyx_k_max_token), 0, 0, 1, 1},
   {&__pyx_n_s_maxpos, __pyx_k_maxpos, sizeof(__pyx_k_maxpos), 0, 0, 1, 1},
   {&__pyx_n_s_maxtoken, __pyx_k_maxtoken, sizeof(__pyx_k_maxtoken), 0, 0, 1, 1},
@@ -19209,6 +19274,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
   {&__pyx_n_s_obj, __pyx_k_obj, sizeof(__pyx_k_obj), 0, 0, 1, 1},
   {&__pyx_n_s_os, __pyx_k_os, sizeof(__pyx_k_os), 0, 0, 1, 1},
+  {&__pyx_n_s_output_len, __pyx_k_output_len, sizeof(__pyx_k_output_len), 0, 0, 1, 1},
   {&__pyx_n_s_output_length, __pyx_k_output_length, sizeof(__pyx_k_output_length), 0, 0, 1, 1},
   {&__pyx_n_s_pack, __pyx_k_pack, sizeof(__pyx_k_pack), 0, 0, 1, 1},
   {&__pyx_n_s_pad_id, __pyx_k_pad_id, sizeof(__pyx_k_pad_id), 0, 0, 1, 1},
@@ -19285,6 +19351,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
+  /* "dag_search.pyx":104
+ *         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")
+ *     output_len = (result != pad_id).sum(axis=-1).max()
+ *     return result[:, :output_len], score             # <<<<<<<<<<<<<<
+ * 
+ * @cython.wraparound(False)
+ */
+  __pyx_slice_ = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 104, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_slice_);
+  __Pyx_GIVEREF(__pyx_slice_);
+
   /* "View.MemoryView":134
  * 
  *         if not self.ndim:
@@ -19292,9 +19369,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *         if itemsize <= 0:
  */
-  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_s_Empty_shape_tuple_for_cython_arr); if (unlikely(!__pyx_tuple_)) __PYX_ERR(1, 134, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple_);
-  __Pyx_GIVEREF(__pyx_tuple_);
+  __pyx_tuple__2 = PyTuple_Pack(1, __pyx_kp_s_Empty_shape_tuple_for_cython_arr); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(1, 134, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__2);
+  __Pyx_GIVEREF(__pyx_tuple__2);
 
   /* "View.MemoryView":137
  * 
@@ -19303,9 +19380,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *         if not isinstance(format, bytes):
  */
-  __pyx_tuple__2 = PyTuple_Pack(1, __pyx_kp_s_itemsize_0_for_cython_array); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(1, 137, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__2);
-  __Pyx_GIVEREF(__pyx_tuple__2);
+  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s_itemsize_0_for_cython_array); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(1, 137, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__3);
+  __Pyx_GIVEREF(__pyx_tuple__3);
 
   /* "View.MemoryView":149
  * 
@@ -19314,9 +19391,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  */
-  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s_unable_to_allocate_shape_and_str); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(1, 149, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__3);
-  __Pyx_GIVEREF(__pyx_tuple__3);
+  __pyx_tuple__4 = PyTuple_Pack(1, __pyx_kp_s_unable_to_allocate_shape_and_str); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(1, 149, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__4);
+  __Pyx_GIVEREF(__pyx_tuple__4);
 
   /* "View.MemoryView":177
  *             self.data = <char *>malloc(self.len)
@@ -19325,9 +19402,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *             if self.dtype_is_object:
  */
-  __pyx_tuple__4 = PyTuple_Pack(1, __pyx_kp_s_unable_to_allocate_array_data); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(1, 177, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__4);
-  __Pyx_GIVEREF(__pyx_tuple__4);
+  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_s_unable_to_allocate_array_data); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(1, 177, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__5);
+  __Pyx_GIVEREF(__pyx_tuple__5);
 
   /* "View.MemoryView":193
  *             bufmode = PyBUF_F_CONTIGUOUS | PyBUF_ANY_CONTIGUOUS
@@ -19336,9 +19413,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *         info.buf = self.data
  *         info.len = self.len
  */
-  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_s_Can_only_create_a_buffer_that_is); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(1, 193, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__5);
-  __Pyx_GIVEREF(__pyx_tuple__5);
+  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_s_Can_only_create_a_buffer_that_is); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(1, 193, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__6);
+  __Pyx_GIVEREF(__pyx_tuple__6);
 
   /* "(tree fragment)":2
  * def __reduce_cython__(self):
@@ -19346,18 +19423,18 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")
  */
-  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(1, 2, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__6);
-  __Pyx_GIVEREF(__pyx_tuple__6);
+  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(1, 2, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__7);
+  __Pyx_GIVEREF(__pyx_tuple__7);
 
   /* "(tree fragment)":4
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")             # <<<<<<<<<<<<<<
  */
-  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(1, 4, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__7);
-  __Pyx_GIVEREF(__pyx_tuple__7);
+  __pyx_tuple__8 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(1, 4, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__8);
+  __Pyx_GIVEREF(__pyx_tuple__8);
 
   /* "View.MemoryView":420
  *     def __setitem__(memoryview self, object index, object value):
@@ -19366,9 +19443,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *         have_slices, index = _unellipsify(index, self.view.ndim)
  */
-  __pyx_tuple__8 = PyTuple_Pack(1, __pyx_kp_s_Cannot_assign_to_read_only_memor); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(1, 420, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__8);
-  __Pyx_GIVEREF(__pyx_tuple__8);
+  __pyx_tuple__9 = PyTuple_Pack(1, __pyx_kp_s_Cannot_assign_to_read_only_memor); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(1, 420, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__9);
+  __Pyx_GIVEREF(__pyx_tuple__9);
 
   /* "View.MemoryView":497
  *             result = struct.unpack(self.view.format, bytesitem)
@@ -19377,9 +19454,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *         else:
  *             if len(self.view.format) == 1:
  */
-  __pyx_tuple__9 = PyTuple_Pack(1, __pyx_kp_s_Unable_to_convert_item_to_object); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(1, 497, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__9);
-  __Pyx_GIVEREF(__pyx_tuple__9);
+  __pyx_tuple__10 = PyTuple_Pack(1, __pyx_kp_s_Unable_to_convert_item_to_object); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(1, 497, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__10);
+  __Pyx_GIVEREF(__pyx_tuple__10);
 
   /* "View.MemoryView":522
  *     def __getbuffer__(self, Py_buffer *info, int flags):
@@ -19388,9 +19465,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *         if flags & PyBUF_ND:
  */
-  __pyx_tuple__10 = PyTuple_Pack(1, __pyx_kp_s_Cannot_create_writable_memory_vi); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(1, 522, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__10);
-  __Pyx_GIVEREF(__pyx_tuple__10);
+  __pyx_tuple__11 = PyTuple_Pack(1, __pyx_kp_s_Cannot_create_writable_memory_vi); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(1, 522, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__11);
+  __Pyx_GIVEREF(__pyx_tuple__11);
 
   /* "View.MemoryView":572
  *         if self.view.strides == NULL:
@@ -19399,9 +19476,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *         return tuple([stride for stride in self.view.strides[:self.view.ndim]])
  */
-  __pyx_tuple__11 = PyTuple_Pack(1, __pyx_kp_s_Buffer_view_does_not_expose_stri); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(1, 572, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__11);
-  __Pyx_GIVEREF(__pyx_tuple__11);
+  __pyx_tuple__12 = PyTuple_Pack(1, __pyx_kp_s_Buffer_view_does_not_expose_stri); if (unlikely(!__pyx_tuple__12)) __PYX_ERR(1, 572, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__12);
+  __Pyx_GIVEREF(__pyx_tuple__12);
 
   /* "View.MemoryView":579
  *     def suboffsets(self):
@@ -19410,12 +19487,12 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  *         return tuple([suboffset for suboffset in self.view.suboffsets[:self.view.ndim]])
  */
-  __pyx_tuple__12 = PyTuple_New(1); if (unlikely(!__pyx_tuple__12)) __PYX_ERR(1, 579, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__12);
+  __pyx_tuple__13 = PyTuple_New(1); if (unlikely(!__pyx_tuple__13)) __PYX_ERR(1, 579, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__13);
   __Pyx_INCREF(__pyx_int_neg_1);
   __Pyx_GIVEREF(__pyx_int_neg_1);
-  PyTuple_SET_ITEM(__pyx_tuple__12, 0, __pyx_int_neg_1);
-  __Pyx_GIVEREF(__pyx_tuple__12);
+  PyTuple_SET_ITEM(__pyx_tuple__13, 0, __pyx_int_neg_1);
+  __Pyx_GIVEREF(__pyx_tuple__13);
 
   /* "(tree fragment)":2
  * def __reduce_cython__(self):
@@ -19423,29 +19500,18 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")
  */
-  __pyx_tuple__13 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__13)) __PYX_ERR(1, 2, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__13);
-  __Pyx_GIVEREF(__pyx_tuple__13);
+  __pyx_tuple__14 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__14)) __PYX_ERR(1, 2, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__14);
+  __Pyx_GIVEREF(__pyx_tuple__14);
 
   /* "(tree fragment)":4
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")
  * def __setstate_cython__(self, __pyx_state):
  *     raise TypeError("no default __reduce__ due to non-trivial __cinit__")             # <<<<<<<<<<<<<<
  */
-  __pyx_tuple__14 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__14)) __PYX_ERR(1, 4, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__14);
-  __Pyx_GIVEREF(__pyx_tuple__14);
-
-  /* "View.MemoryView":684
- *         if item is Ellipsis:
- *             if not seen_ellipsis:
- *                 result.extend([slice(None)] * (ndim - len(tup) + 1))             # <<<<<<<<<<<<<<
- *                 seen_ellipsis = True
- *             else:
- */
-  __pyx_slice__15 = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice__15)) __PYX_ERR(1, 684, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_slice__15);
-  __Pyx_GIVEREF(__pyx_slice__15);
+  __pyx_tuple__15 = PyTuple_Pack(1, __pyx_kp_s_no_default___reduce___due_to_non); if (unlikely(!__pyx_tuple__15)) __PYX_ERR(1, 4, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__15);
+  __Pyx_GIVEREF(__pyx_tuple__15);
 
   /* "View.MemoryView":705
  *     for suboffset in suboffsets[:ndim]:
@@ -19499,10 +19565,10 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *         int[:, :, ::1] logits_idx, int[::1] output_length,
  *         float alpha, float gamma, int beam_size, int beamlensize, float top_p, int pad_id, int go_id, int dedup,
  */
-  __pyx_tuple__22 = PyTuple_Pack(24, __pyx_n_s_dagscores, __pyx_n_s_nextstep_idx, __pyx_n_s_logits_idx, __pyx_n_s_output_length, __pyx_n_s_alpha, __pyx_n_s_gamma, __pyx_n_s_beam_size, __pyx_n_s_beamlensize, __pyx_n_s_top_p, __pyx_n_s_pad_id, __pyx_n_s_go_id, __pyx_n_s_dedup, __pyx_n_s_no_consecutive_repeat_ngram, __pyx_n_s_no_repeat_ngram, __pyx_n_s_batch_size, __pyx_n_s_prelen, __pyx_n_s_start_init, __pyx_n_s_i, __pyx_n_s_lm_vocab_view, __pyx_n_s_start, __pyx_n_s_start2, __pyx_n_s_start3, __pyx_n_s_result, __pyx_n_s_score); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_tuple__22 = PyTuple_Pack(25, __pyx_n_s_dagscores, __pyx_n_s_nextstep_idx, __pyx_n_s_logits_idx, __pyx_n_s_output_length, __pyx_n_s_alpha, __pyx_n_s_gamma, __pyx_n_s_beam_size, __pyx_n_s_beamlensize, __pyx_n_s_top_p, __pyx_n_s_pad_id, __pyx_n_s_go_id, __pyx_n_s_dedup, __pyx_n_s_no_consecutive_repeat_ngram, __pyx_n_s_no_repeat_ngram, __pyx_n_s_batch_size, __pyx_n_s_prelen, __pyx_n_s_start_init, __pyx_n_s_i, __pyx_n_s_lm_vocab_view, __pyx_n_s_start, __pyx_n_s_start2, __pyx_n_s_start3, __pyx_n_s_result, __pyx_n_s_score, __pyx_n_s_output_len); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 58, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__22);
   __Pyx_GIVEREF(__pyx_tuple__22);
-  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(14, 0, 24, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_python_dag_search_pyx, __pyx_n_s_dag_search, 58, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(14, 0, 25, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_python_dag_search_pyx, __pyx_n_s_dag_search, 58, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 58, __pyx_L1_error)
 
   /* "View.MemoryView":287
  *         return self.name
@@ -21254,6 +21320,122 @@ bad:
 #endif
 }
 
+/* GetItemInt */
+static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
+    PyObject *r;
+    if (!j) return NULL;
+    r = PyObject_GetItem(o, j);
+    Py_DECREF(j);
+    return r;
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
+                                                              CYTHON_NCP_UNUSED int wraparound,
+                                                              CYTHON_NCP_UNUSED int boundscheck) {
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    Py_ssize_t wrapped_i = i;
+    if (wraparound & unlikely(i < 0)) {
+        wrapped_i += PyList_GET_SIZE(o);
+    }
+    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyList_GET_SIZE(o)))) {
+        PyObject *r = PyList_GET_ITEM(o, wrapped_i);
+        Py_INCREF(r);
+        return r;
+    }
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+#else
+    return PySequence_GetItem(o, i);
+#endif
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
+                                                              CYTHON_NCP_UNUSED int wraparound,
+                                                              CYTHON_NCP_UNUSED int boundscheck) {
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    Py_ssize_t wrapped_i = i;
+    if (wraparound & unlikely(i < 0)) {
+        wrapped_i += PyTuple_GET_SIZE(o);
+    }
+    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyTuple_GET_SIZE(o)))) {
+        PyObject *r = PyTuple_GET_ITEM(o, wrapped_i);
+        Py_INCREF(r);
+        return r;
+    }
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+#else
+    return PySequence_GetItem(o, i);
+#endif
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, int is_list,
+                                                     CYTHON_NCP_UNUSED int wraparound,
+                                                     CYTHON_NCP_UNUSED int boundscheck) {
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
+    if (is_list || PyList_CheckExact(o)) {
+        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyList_GET_SIZE(o);
+        if ((!boundscheck) || (likely(__Pyx_is_valid_index(n, PyList_GET_SIZE(o))))) {
+            PyObject *r = PyList_GET_ITEM(o, n);
+            Py_INCREF(r);
+            return r;
+        }
+    }
+    else if (PyTuple_CheckExact(o)) {
+        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyTuple_GET_SIZE(o);
+        if ((!boundscheck) || likely(__Pyx_is_valid_index(n, PyTuple_GET_SIZE(o)))) {
+            PyObject *r = PyTuple_GET_ITEM(o, n);
+            Py_INCREF(r);
+            return r;
+        }
+    } else {
+        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
+        if (likely(m && m->sq_item)) {
+            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
+                Py_ssize_t l = m->sq_length(o);
+                if (likely(l >= 0)) {
+                    i += l;
+                } else {
+                    if (!PyErr_ExceptionMatches(PyExc_OverflowError))
+                        return NULL;
+                    PyErr_Clear();
+                }
+            }
+            return m->sq_item(o, i);
+        }
+    }
+#else
+    if (is_list || PySequence_Check(o)) {
+        return PySequence_GetItem(o, i);
+    }
+#endif
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+}
+
+/* ObjectGetItem */
+#if CYTHON_USE_TYPE_SLOTS
+static PyObject *__Pyx_PyObject_GetIndex(PyObject *obj, PyObject* index) {
+    PyObject *runerr;
+    Py_ssize_t key_value;
+    PySequenceMethods *m = Py_TYPE(obj)->tp_as_sequence;
+    if (unlikely(!(m && m->sq_item))) {
+        PyErr_Format(PyExc_TypeError, "'%.200s' object is not subscriptable", Py_TYPE(obj)->tp_name);
+        return NULL;
+    }
+    key_value = __Pyx_PyIndex_AsSsize_t(index);
+    if (likely(key_value != -1 || !(runerr = PyErr_Occurred()))) {
+        return __Pyx_GetItemInt_Fast(obj, key_value, 0, 1, 1);
+    }
+    if (PyErr_GivenExceptionMatches(runerr, PyExc_OverflowError)) {
+        PyErr_Clear();
+        PyErr_Format(PyExc_IndexError, "cannot fit '%.200s' into an index-sized integer", Py_TYPE(index)->tp_name);
+    }
+    return NULL;
+}
+static PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* key) {
+    PyMappingMethods *m = Py_TYPE(obj)->tp_as_mapping;
+    if (likely(m && m->mp_subscript)) {
+        return m->mp_subscript(obj, key);
+    }
+    return __Pyx_PyObject_GetIndex(obj, key);
+}
+#endif
+
 /* DivInt[long] */
 static CYTHON_INLINE long __Pyx_div_long(long a, long b) {
     long q = a / b;
@@ -21516,122 +21698,6 @@ static CYTHON_INLINE PyObject *__Pyx_GetAttr(PyObject *o, PyObject *n) {
 #endif
     return PyObject_GetAttr(o, n);
 }
-
-/* GetItemInt */
-static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
-    PyObject *r;
-    if (!j) return NULL;
-    r = PyObject_GetItem(o, j);
-    Py_DECREF(j);
-    return r;
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
-                                                              CYTHON_NCP_UNUSED int wraparound,
-                                                              CYTHON_NCP_UNUSED int boundscheck) {
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    Py_ssize_t wrapped_i = i;
-    if (wraparound & unlikely(i < 0)) {
-        wrapped_i += PyList_GET_SIZE(o);
-    }
-    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyList_GET_SIZE(o)))) {
-        PyObject *r = PyList_GET_ITEM(o, wrapped_i);
-        Py_INCREF(r);
-        return r;
-    }
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-#else
-    return PySequence_GetItem(o, i);
-#endif
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
-                                                              CYTHON_NCP_UNUSED int wraparound,
-                                                              CYTHON_NCP_UNUSED int boundscheck) {
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    Py_ssize_t wrapped_i = i;
-    if (wraparound & unlikely(i < 0)) {
-        wrapped_i += PyTuple_GET_SIZE(o);
-    }
-    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyTuple_GET_SIZE(o)))) {
-        PyObject *r = PyTuple_GET_ITEM(o, wrapped_i);
-        Py_INCREF(r);
-        return r;
-    }
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-#else
-    return PySequence_GetItem(o, i);
-#endif
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, int is_list,
-                                                     CYTHON_NCP_UNUSED int wraparound,
-                                                     CYTHON_NCP_UNUSED int boundscheck) {
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
-    if (is_list || PyList_CheckExact(o)) {
-        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyList_GET_SIZE(o);
-        if ((!boundscheck) || (likely(__Pyx_is_valid_index(n, PyList_GET_SIZE(o))))) {
-            PyObject *r = PyList_GET_ITEM(o, n);
-            Py_INCREF(r);
-            return r;
-        }
-    }
-    else if (PyTuple_CheckExact(o)) {
-        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyTuple_GET_SIZE(o);
-        if ((!boundscheck) || likely(__Pyx_is_valid_index(n, PyTuple_GET_SIZE(o)))) {
-            PyObject *r = PyTuple_GET_ITEM(o, n);
-            Py_INCREF(r);
-            return r;
-        }
-    } else {
-        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
-        if (likely(m && m->sq_item)) {
-            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
-                Py_ssize_t l = m->sq_length(o);
-                if (likely(l >= 0)) {
-                    i += l;
-                } else {
-                    if (!PyErr_ExceptionMatches(PyExc_OverflowError))
-                        return NULL;
-                    PyErr_Clear();
-                }
-            }
-            return m->sq_item(o, i);
-        }
-    }
-#else
-    if (is_list || PySequence_Check(o)) {
-        return PySequence_GetItem(o, i);
-    }
-#endif
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-}
-
-/* ObjectGetItem */
-#if CYTHON_USE_TYPE_SLOTS
-static PyObject *__Pyx_PyObject_GetIndex(PyObject *obj, PyObject* index) {
-    PyObject *runerr;
-    Py_ssize_t key_value;
-    PySequenceMethods *m = Py_TYPE(obj)->tp_as_sequence;
-    if (unlikely(!(m && m->sq_item))) {
-        PyErr_Format(PyExc_TypeError, "'%.200s' object is not subscriptable", Py_TYPE(obj)->tp_name);
-        return NULL;
-    }
-    key_value = __Pyx_PyIndex_AsSsize_t(index);
-    if (likely(key_value != -1 || !(runerr = PyErr_Occurred()))) {
-        return __Pyx_GetItemInt_Fast(obj, key_value, 0, 1, 1);
-    }
-    if (PyErr_GivenExceptionMatches(runerr, PyExc_OverflowError)) {
-        PyErr_Clear();
-        PyErr_Format(PyExc_IndexError, "cannot fit '%.200s' into an index-sized integer", Py_TYPE(index)->tp_name);
-    }
-    return NULL;
-}
-static PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject* key) {
-    PyMappingMethods *m = Py_TYPE(obj)->tp_as_mapping;
-    if (likely(m && m->mp_subscript)) {
-        return m->mp_subscript(obj, key);
-    }
-    return __Pyx_PyObject_GetIndex(obj, key);
-}
-#endif
 
 /* decode_c_string */
 static CYTHON_INLINE PyObject* __Pyx_decode_c_string(
