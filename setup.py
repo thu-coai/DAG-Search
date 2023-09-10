@@ -38,9 +38,9 @@ if compile_test('zlib.h', 'z'):
     ARGS.append('-DHAVE_ZLIB')
     LIBS.append('z')
 
-# if compile_test('bzlib.h', 'bz2'):
-ARGS.append('-DHAVE_BZLIB')
-LIBS.append('bz2')
+if compile_test('bzlib.h', 'bz2'):
+    ARGS.append('-DHAVE_BZLIB')
+    LIBS.append('bz2')
 
 if compile_test('lzma.h', 'lzma'):
     ARGS.append('-DHAVE_XZLIB')

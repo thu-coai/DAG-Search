@@ -58,7 +58,7 @@ def beam_search_init(int batch_size, int beam_size, int top_cand_n, int maxpos, 
 def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
         int[:, :, ::1] logits_idx, int[::1] output_length,
         float alpha, float gamma, int beam_size, int beamlensize, float top_p, int pad_id, int go_id, int dedup,
-        int no_consecutive_repeat_ngram, int no_repeat_ngram):
+        int no_consecutive_repeat_ngram, int no_repeat_ngram, int final_beam_size):
 
     batch_size = dagscores.shape[0]
     prelen = dagscores.shape[1]
@@ -81,7 +81,7 @@ def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
         if SearchBeam.__debug_flag:
             printf("dag_search: i = %d\n", i)
             start = time.time()
-        get_beam(batch_size, i, output_length, alpha, gamma, beam_size, beamlensize)
+        get_beam(batch_size, i, output_length, alpha, gamma, beam_size, beamlensize, final_beam_size)
         if SearchBeam.__debug_flag:
             printf("dag_search: finish get beam\n")
             start2 = time.time()
@@ -92,21 +92,21 @@ def dag_search(float[:, :, ::1] dagscores, int[:, :, ::1] nextstep_idx,
             update_time += start2 - start
             expand_time += start3 - start
 
-    result = np.zeros((batch_size, prelen), dtype=np.intc)
-    score = np.zeros((batch_size), dtype=np.float32)
+    result = np.zeros((batch_size, final_beam_size, prelen), dtype=np.intc)
+    score = np.zeros((batch_size, final_beam_size), dtype=np.float32)
     if SearchBeam.__debug_flag:
         printf("dag_search: before traverse\n")
-    traverse_beam(batch_size, pad_id, result, score, dedup)
+    traverse_beam(batch_size, pad_id, result, score, dedup, final_beam_size)
     if SearchBeam.__debug_flag:
         printf("dag_search: after traverse\n")
         print(f"init_time {init_time} update_time {update_time}, expand_time {expand_time}")
     output_len = (result != pad_id).sum(axis=-1).max()
-    return result[:, :output_len], score
+    return result[:, :, :output_len], score
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef void get_beam(int batch_size, int step, int[::1] output_length,
-    float alpha, float gamma, int beam_size, int beamlensize) nogil:
+    float alpha, float gamma, int beam_size, int beamlensize, int final_beam_size) nogil:
 
     cdef Notify* root
     cdef atomic[Notify*]* root_atomic
@@ -133,7 +133,7 @@ cdef void get_beam(int batch_size, int step, int[::1] output_length,
         if step < output_length[i]:
             beam.clear()
 
-            now_beam_size = 1 if step == output_length[i] - 1 else beamlensize
+            now_beam_size = min(final_beam_size, beamlensize) if step == output_length[i] - 1 else beamlensize
 
             root_atomic = node_notify_map_atomic[i].get(make_pair(<int>step, <int>j), memory_order.memory_order_relaxed)
             if root_atomic == <atomic[Notify*]*>0:
@@ -157,14 +157,17 @@ cdef void get_beam(int batch_size, int step, int[::1] output_length,
 
         beam = beams[i * SearchBeam.max_pos]
         if step < output_length[i]:
-            now_beam_size = 1 if step == output_length[i] - 1 else beam_size
+            now_beam_size = final_beam_size if step == output_length[i] - 1 else beam_size
 
             for j in range(1, step + 1):
                 beam.insert(beam.end(), beams[i * SearchBeam.max_pos + j].begin(), beams[i * SearchBeam.max_pos + j].end())
             if (<int>beam.size()) > now_beam_size:
                 nth_element(beam.begin(), beam.begin() + now_beam_size, beam.end(),
-                     node_compare_allscore)
+                        node_compare_allscore)
                 beam.resize(now_beam_size)
+            if step == output_length[i] - 1:
+                sort(beam.begin(), beam.end(), node_compare_allscore)
+                
 
         if SearchBeam.__debug_flag:
             printf("getbeam finished, batch=%d beams:\n", i, )
@@ -178,35 +181,40 @@ cdef void get_beam(int batch_size, int step, int[::1] output_length,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void traverse_beam(int batch_size, int pad_id, int[:, ::1] result, float[::1] score, int dedup) nogil:
-    cdef int i
+cdef void traverse_beam(int batch_size, int pad_id, int[:, :, ::1] result, float[:, ::1] score, int dedup, int final_beam_size) nogil:
+    cdef int i, j
     cdef pair[float, SearchNode_pt] node_pair
     for i in prange(batch_size, nogil=True, schedule="guided"):
-        node_pair = deref(beams[i * SearchBeam.max_pos])[0]
-        score[i] = node_pair.first
-        traverse_beam_single(node_pair.second, i, pad_id, result, dedup)
+        for j in range(final_beam_size):
+            if j < <int>deref(beams[i * SearchBeam.max_pos]).size():
+                node_pair = deref(beams[i * SearchBeam.max_pos])[j]
+                score[i, j] = node_pair.first
+                traverse_beam_single(node_pair.second, i, pad_id, result, dedup, j)
+            else:
+                score[i, j] = -9999999999
+
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void traverse_beam_single(SearchNode* beam, int batch, int pad_id, int[:, ::1] result, int dedup) nogil:
-    cdef int length = result.shape[1]
+cdef void traverse_beam_single(SearchNode* beam, int batch, int pad_id, int[:, :, ::1] result, int dedup, int j) nogil:
+    cdef int length = result.shape[2]
     cdef int pos, i
 
     pos = length - 1
     while beam != <SearchBeam.SearchNode*>0:
-        result[batch, pos] = beam.word
+        result[batch, j, pos] = beam.word
         pos -= 1
         beam = beam.parent
     i = 0
     pos += 1
     while pos < length:
-        if dedup > 0 and i > 0 and result[batch, i - 1] == result[batch, pos]:
+        if dedup > 0 and i > 0 and result[batch, j, i - 1] == result[batch, j, pos]:
             pos += 1
         else:
-            result[batch, i] = result[batch, pos]
+            result[batch, j, i] = result[batch, j, pos]
             i += 1
             pos += 1
     while i < length:
-        result[batch, i] = pad_id
+        result[batch, j, i] = pad_id
         i += 1
